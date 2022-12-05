@@ -1,3 +1,18 @@
+import { ethers } from "ethers";
+
+const provider = new ethers.providers.JsonRpcProvider();
+const signer = new ethers.Wallet("your_private_key_string", provider);
+
+const songsCatalogAddress = "0xF403Ca77cF2B93e1fb65CEED3e509726a3534Fbb";
+
+const contractAbi = [
+    "function getSong(uint64) view returns (string)",
+    "function addSong(string, catalogId)",
+];
+
+// The Contract object
+const songsContract = new ethers.Contract(songsCatalogAddress, contractAbi, provider);
+
 var oscPort = new osc.WebSocketPort({
     url: "ws://localhost:4558", // URL to your Web Socket server.
     metadata: true
@@ -69,9 +84,9 @@ var oscPort = new osc.WebSocketPort({
 });
 
 
-oscPort.on("message", function (oscMsg) {
-    osc_path = oscMsg.address;
-    osc_args = oscMsg.args.map(x => x.value);
+oscPort.on("message", async function (oscMsg) {
+    let osc_path = oscMsg.address;
+    let osc_args = oscMsg.args.map(x => x.value);
 
     debug_log.logs.push(osc_path + ", " + JSON.stringify(osc_args));
 
@@ -80,7 +95,8 @@ oscPort.on("message", function (oscMsg) {
         info_log.logs.push(JSON.stringify(osc_args[1]));
         break;
     case "/buffer/replace":
-        editor.setValue(osc_args[1]);
+        let song = await songsContract.getSong();
+        editor.setValue(atob(song));
         break;
     }
 
